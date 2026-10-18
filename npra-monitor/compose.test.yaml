@@ -1,0 +1,17 @@
+services:
+  npra-tests:
+    build:
+      context: .
+      dockerfile: system-tests/Dockerfile
+    environment:
+      NPRA_SYSTEM_TESTS: "1"
+      NPRA_TEST_API_URL: http://npra-api:8000
+      NPRA_TEST_WEB_URL: http://npra-web
+      NPRA_TEST_DATABASE_URL: postgresql+psycopg://npra:npra@postgres:5432/npra_monitor
+      NPRA_ADMIN_EMAIL: ${NPRA_ADMIN_EMAIL:-admin@npra.local}
+      NPRA_ADMIN_PASSWORD: ${NPRA_ADMIN_PASSWORD:-npra-demo-2026}
+    depends_on:
+      npra-api:
+        condition: service_healthy
+      npra-web:
+        condition: service_healthy

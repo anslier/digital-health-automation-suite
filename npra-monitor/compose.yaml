@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  npra-api:
+    build: ./backend
+    environment:
+      NPRA_DATABASE_URL: postgresql+psycopg://npra:npra@postgres:5432/npra_monitor
+      NPRA_DATA_DIR: /data
+      NPRA_DOWNLOADS_DIR: /data/downloads
+      NPRA_ADMIN_EMAIL: ${NPRA_ADMIN_EMAIL:-admin@npra.local}
+      NPRA_ADMIN_PASSWORD: ${NPRA_ADMIN_PASSWORD:-npra-demo-2026}
+      NPRA_BROWSER_HEADLESS: "true"
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    volumes:
+      - npra_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  npra-worker:
+    build: ./backend
+    environment:
+      NPRA_DATABASE_URL: postgresql+psycopg://npra:npra@postgres:5432/npra_monitor
+      NPRA_DATA_DIR: /data
+      NPRA_DOWNLOADS_DIR: /data/downloads
+      NPRA_ADMIN_EMAIL: ${NPRA_ADMIN_EMAIL:-admin@npra.local}
+      NPRA_ADMIN_PASSWORD: ${NPRA_ADMIN_PASSWORD:-npra-demo-2026}
+      NPRA_BROWSER_HEADLESS: "true"
+    command: ["sh", "-c", "alembic upgrade head && python -m app.worker"]
+    volumes:
+      - npra_data:/data
+    depends_on:
+      npra-api:
+        condition: service_healthy
+
+  npra-web:
+    build: ./frontend
+    ports:
+      - "4201:80"
+    depends_on:
+      npra-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:
+  npra_data:
+
