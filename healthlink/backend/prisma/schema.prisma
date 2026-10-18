@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum ConsultationType {
+  CHAT
+  VIDEO
+}
+
+enum ConsultationStatus {
+  SCHEDULED
+  COMPLETED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         Role
+  passwordHash String?
+  patient      Patient?
+  doctor       Doctor?
+  sessions     AuthSession[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AuthSession {
+  tokenHash String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Patient {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  phone         String?
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consultations Consultation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Doctor {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  specialty     String
+  bio           String?
+  active        Boolean        @default(true)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availabilities Availability[]
+  consultations Consultation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  doctorId  String
+  startTime DateTime
+  endTime   DateTime
+  isBooked  Boolean  @default(false)
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([doctorId, startTime])
+  @@index([doctorId, startTime])
+}
+
+model Consultation {
+  id             String             @id @default(cuid())
+  patientId      String
+  doctorId       String
+  type           ConsultationType
+  preferredTime  DateTime
+  reasonForVisit String
+  status         ConsultationStatus @default(SCHEDULED)
+  patient        Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor         Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([doctorId, preferredTime])
+  @@index([patientId, preferredTime])
+  @@index([doctorId, preferredTime])
+}

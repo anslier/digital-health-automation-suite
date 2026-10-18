@@ -1,0 +1,21 @@
+<main class="entry-shell">
+  <section class="entry-story">
+    <div class="brand"><span class="brand-mark">♥</span><strong>HealthLink</strong></div>
+    <div class="story-copy"><span class="eyebrow">CARE, CONNECTED</span><h1>A little closer<br>to better care.</h1><p>One place for patients, doctors, and the people who keep care moving.</p><div class="entry-art" aria-hidden="true"><span>+</span></div></div>
+    <p class="story-foot">Fictional assessment application · Demo accounts only</p>
+  </section>
+  <section class="entry-login">
+    <span class="eyebrow">WELCOME TO HEALTHLINK</span><h2>Choose your workspace</h2><p class="intro">Select a role, then sign in to explore the demo.</p>
+    <div class="role-options" aria-label="Choose a role">
+      <button *ngFor="let item of roles" type="button" [class.selected]="role === item.role" [attr.aria-pressed]="role === item.role" [disabled]="busy" (click)="selectRole(item.role)"><span>{{ item.symbol }}</span><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label for="login-email">Email</label><input id="login-email" type="email" autocomplete="username" formControlName="email">
+      <label for="login-password">Password</label><input id="login-password" type="password" autocomplete="current-password" formControlName="password">
+      <p class="demo-note">Demo credentials are prefilled and editable. All demo accounts use <strong>healthlink-demo-2026</strong>.</p>
+      <p class="notice error" role="alert" *ngIf="error">{{ error }}</p>
+      <button class="primary-button" type="submit" [disabled]="busy || form.invalid">{{ busy ? 'Signing in...' : 'Sign in as ' + roleLabel }}</button>
+    </form>
+    <p class="entry-hint">Patient bookings, doctor availability, and admin changes use the same saved database.</p>
+  </section>
+</main>
